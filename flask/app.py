@@ -1,49 +1,53 @@
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, render_template, request, redirect, url_for
+from datetime import datetime
 
 app = Flask(__name__)
 
-# A simple in-memory structure to store tasks
-tasks = []
+# Simulasi database sementara
+users = {"user@gmail.com": "123"}
+user_role = "kurir"
+total_belanja = 120000
 
-@app.route('/', methods=['GET'])
+@app.route('/')
 def home():
-    # Display existing tasks and a form to add a new task
-    html = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Todo List</title>
-</head>
-<body>
-    <h1>Todo List</h1>
-    <form action="/add" method="POST">
-        <input type="text" name="task" placeholder="Enter a new task">
-        <input type="submit" value="Add Task">
-    </form>
-    <ul>
-        {% for task in tasks %}
-        <li>{{ task }} <a href="/delete/{{ loop.index0 }}">x</a></li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
-'''
-    return render_template_string(html, tasks=tasks)
+    return render_template('login.html')
 
-@app.route('/add', methods=['POST'])
-def add_task():
-    # Add a new task from the form data
-    task = request.form.get('task')
-    if task:
-        tasks.append(task)
-    return home()
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form['email']
+    password = request.form['password']
+    if email in users and users[email] == password:
+        return redirect(url_for('menu'))
+    else:
+        return "Login gagal. <a href='/'>Coba lagi</a>"
 
-@app.route('/delete/<int:index>', methods=['GET'])
-def delete_task(index):
-    # Delete a task based on its index
-    if index < len(tasks):
-        tasks.pop(index)
-    return home()
+@app.route('/menu')
+def menu():
+    now = datetime.now()
+    jam = now.hour
+    if jam > 21:
+        return render_template('tutup.html')
+    return render_template('menu.html')
+
+@app.route('/kurir')
+def kurir():
+    if user_role == "kurir":
+        return render_template('kurir.html')
+    else:
+        return "Bukan halaman untukmu."
+
+@app.route('/checkout')
+def checkout():
+    return render_template('checkout.html', total=total_belanja)
+
+@app.route('/alamat', methods=['GET', 'POST'])
+def alamat():
+    if request.method == 'POST':
+        alamat = request.form['alamat']
+        if alamat.strip() == "":
+            return render_template('alamat.html', error="Alamat tidak boleh kosong")
+        return "Alamat berhasil disimpan!"
+    return render_template('alamat.html', error="")
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True)
